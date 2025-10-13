@@ -9,6 +9,12 @@ use crate::avatar_api::{AvatarProvider, FetchError};
 #[derive(Debug, Clone, new)]
 pub struct MockAvatarProvider(u32);
 
+impl Default for MockAvatarProvider {
+    fn default() -> Self {
+        Self(512)
+    }
+}
+
 impl AvatarProvider for MockAvatarProvider {
     type FetchAvatarFuture<'a> = Ready<Result<DynamicImage, FetchError>>;
 
