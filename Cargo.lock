@@ -2164,6 +2164,7 @@ dependencies = [
  "rand 0.9.2",
  "regex",
  "reqwest",
+ "serde",
  "tdlib-rs",
  "tempfile",
  "thiserror 2.0.17",

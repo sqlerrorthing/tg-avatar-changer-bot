@@ -73,6 +73,8 @@ impl<P: AvatarProvider> AvatarChanger<P> {
             .write_to(&mut file.as_file(), image::ImageFormat::Jpeg)
             .unwrap();
 
+        info!("Saved temporary as {}", file.path().display());
+
         Ok(file)
     }
 

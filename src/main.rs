@@ -1,3 +1,4 @@
+use reqwest::Client;
 use std::{
     sync::{
         Arc,
@@ -10,7 +11,7 @@ use tdlib_rs::{
     functions,
 };
 
-use tg_avatar_changer_bot::{AvatarChanger, avatar_api::solid_random_color::MockAvatarProvider};
+use tg_avatar_changer_bot::{AvatarChanger, avatar_api::solid_color::SolidColorProvider};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
 fn ask_user(string: &str) -> String {
@@ -162,9 +163,9 @@ async fn main() {
     let auth_rx = handle_authorization_state(client_id, auth_rx, run_flag.clone()).await;
 
     AvatarChanger::new(
-        MockAvatarProvider::default(),
+        SolidColorProvider::default(),
         client_id,
-        Duration::from_secs(15),
+        Duration::from_mins(2),
     )
     .run_loop()
     .await;
