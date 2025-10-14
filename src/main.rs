@@ -1,11 +1,13 @@
 use config::{Config, File};
-use parse_duration::parse;
 use serde::Deserialize;
 use std::{
-    env, error::Error, sync::{
+    env,
+    error::Error,
+    sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
-    }, time::Duration
+    },
+    time::Duration,
 };
 use tdlib_rs::{
     enums::{self, AuthorizationState, Update},
@@ -55,16 +57,9 @@ struct AuthConfig {
 #[derive(Deserialize)]
 struct AppConfig {
     auth: AuthConfig,
-    #[serde(deserialize_with = "deserialize_duration")]
+    #[serde(with = "humantime_serde")]
     change_duration: Duration,
     provider: AvatarProviderConfig,
-}
-
-fn deserialize_duration<'de, D>(deserializer: D) -> Result<Duration, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    parse(<&str>::deserialize(deserializer)?).map_err(serde::de::Error::custom)
 }
 
 fn ask_user(string: &str) -> String {
