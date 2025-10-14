@@ -89,7 +89,7 @@ impl<P: AvatarProvider> AvatarChanger<P> {
             let (result, set_time) =
                 measure!(try_set_profile_photo(InputFile::Local(local), self.client_id).await);
 
-            drop(avatar); // drop temp file
+            drop(avatar); // delete temp file
 
             match result {
                 Ok(_) => info!("Avatar has been set in {set_time:.2} seconds"),
