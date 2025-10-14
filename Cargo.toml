@@ -12,6 +12,7 @@ rand = "0.9.2"
 tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros", "time", "sync"]}
 derive-new = "0.7.0"
 tempfile = "3.23.0"
+regex = "1.12.2"
 
 [build-dependencies]
 tdlib-rs = { version = "1.1.0", features = [ "local-tdlib" ] }
