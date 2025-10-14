@@ -24,8 +24,6 @@ impl AvatarProvider for MockAvatarProvider {
         };
 
         let img = RgbaImage::from_pixel(self.0, self.0, color);
-        sleep(Duration::from_secs(2)).await;
-
         Ok(DynamicImage::ImageRgba8(img))
     }
 }
