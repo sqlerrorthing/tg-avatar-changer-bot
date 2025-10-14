@@ -10,7 +10,7 @@ use tdlib_rs::{
     functions,
 };
 
-use tg_avatar_changer_bot::{AvatarChanger, avatar_api::mock::MockAvatarProvider};
+use tg_avatar_changer_bot::{AvatarChanger, avatar_api::solid_random_color::MockAvatarProvider};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
 fn ask_user(string: &str) -> String {

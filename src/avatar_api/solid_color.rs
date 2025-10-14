@@ -3,27 +3,32 @@ use std::time::Duration;
 use derive_new::new;
 use image::{DynamicImage, Rgba, RgbaImage};
 use rand::Rng;
-use tokio::time::sleep;
 
 use crate::avatar_api::{AvatarProvider, FetchError};
 
 #[derive(Debug, Clone, new)]
-pub struct MockAvatarProvider(u32);
+pub struct SolidColorProvider {
+    size: u32,
+    color: Option<Rgba<u8>>,
+}
 
-impl Default for MockAvatarProvider {
+impl Default for SolidColorProvider {
     fn default() -> Self {
-        Self(512)
+        Self {
+            size: 512,
+            color: None,
+        }
     }
 }
 
-impl AvatarProvider for MockAvatarProvider {
+impl AvatarProvider for SolidColorProvider {
     async fn fetch_avatar<'a>(&'a self) -> Result<DynamicImage, FetchError> {
-        let color = {
+        let color = self.color.unwrap_or({
             let mut rng = rand::rng();
             Rgba([rng.random(), rng.random(), rng.random(), 255])
-        };
+        });
 
-        let img = RgbaImage::from_pixel(self.0, self.0, color);
+        let img = RgbaImage::from_pixel(self.size, self.size, color);
         Ok(DynamicImage::ImageRgba8(img))
     }
 }

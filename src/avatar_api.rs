@@ -1,4 +1,4 @@
-pub mod mock;
+pub mod solid_color;
 
 use image::DynamicImage;
 use thiserror::Error;
