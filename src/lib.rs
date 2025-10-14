@@ -2,6 +2,7 @@ use log::{error, info, warn};
 use regex::Regex;
 use std::time::Duration;
 use std::time::Instant;
+use tempfile::NamedTempFile;
 
 use derive_new::new;
 use tokio::time::sleep;
@@ -13,8 +14,11 @@ use tdlib_rs::{
 };
 
 use crate::avatar_api::AvatarProvider;
+use crate::avatar_api::FetchError;
 
 pub mod avatar_api;
+
+const MAX_AVATAR_FETCH_ATTEMPTS: u8 = 5;
 
 #[derive(Debug, new)]
 pub struct AvatarChanger<P> {
@@ -33,22 +37,53 @@ macro_rules! measure {
 }
 
 impl<P: AvatarProvider> AvatarChanger<P> {
+    async fn fetch_and_write_avatar_to_tempfile(&self) -> Result<NamedTempFile, FetchError> {
+        let (avatar, elapsed) = {
+            let mut attempt = 1;
+            loop {
+                if attempt == 1 {
+                    info!("Fetching new awatar");
+                } else {
+                    info!(
+                        "Fetching new awatar ({}/{MAX_AVATAR_FETCH_ATTEMPTS})",
+                        attempt
+                    );
+                }
+
+                let (res, elapsed) = measure!(self.provider.fetch_avatar().await);
+
+                match res {
+                    Ok(avatar) => break (avatar, elapsed),
+                    Err(err) => {
+                        error!("Error fetching new avatar: {err:?}");
+
+                        attempt += 1;
+                        if attempt > MAX_AVATAR_FETCH_ATTEMPTS {
+                            return Err(err);
+                        }
+                    }
+                }
+            }
+        };
+
+        info!("Fetched new awatar as {elapsed:.2} seconds");
+
+        let file = unsafe { tempfile::NamedTempFile::new().unwrap_unchecked() };
+        avatar
+            .write_to(&mut file.as_file(), image::ImageFormat::Jpeg)
+            .unwrap();
+
+        info!("Saved temporary as {}", file.path().display());
+
+        Ok(file)
+    }
+
     pub async fn run_loop(&self) {
         loop {
-            info!("Fetching new awatar");
-
-            let (avatar, elapsed) = measure!(self.provider.fetch_avatar().await.unwrap());
-            info!("Fetched new awatar as {elapsed:.2} seconds");
-
-            info!("Setting avatar: {}x{}", avatar.width(), avatar.height());
-
-            let file = tempfile::NamedTempFile::new().unwrap();
-            avatar
-                .write_to(&mut file.as_file(), image::ImageFormat::Jpeg)
-                .unwrap();
+            let avatar = self.fetch_and_write_avatar_to_tempfile().await.unwrap();
 
             let local = InputFileLocal {
-                path: file.path().display().to_string(),
+                path: avatar.path().display().to_string(),
             };
 
             let (result, set_time) =

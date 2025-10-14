@@ -1,4 +1,8 @@
+use config::{Config, File};
+use serde::Deserialize;
 use std::{
+    env,
+    error::Error,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -10,8 +14,53 @@ use tdlib_rs::{
     functions,
 };
 
-use tg_avatar_changer_bot::{AvatarChanger, avatar_api::mock::MockAvatarProvider};
+use tg_avatar_changer_bot::{
+    AvatarChanger,
+    avatar_api::{AvatarProvider, solid_color::SolidColorProvider, unsplash::UnsplashProvider},
+};
 use tokio::sync::mpsc::{self, Receiver, Sender};
+
+#[derive(Deserialize)]
+#[serde(tag = "type")]
+enum AvatarProviderConfig {
+    #[serde(rename = "solid")]
+    SolidColor(SolidColorProvider),
+
+    #[serde(rename = "unsplash")]
+    Unsplash(UnsplashProvider),
+}
+
+impl AvatarProvider for AvatarProviderConfig {
+    async fn fetch_avatar<'a>(
+        &'a self,
+    ) -> Result<image::DynamicImage, tg_avatar_changer_bot::avatar_api::FetchError> {
+        match self {
+            AvatarProviderConfig::SolidColor(solid_color_provider) => {
+                solid_color_provider.fetch_avatar().await
+            }
+            AvatarProviderConfig::Unsplash(unsplash_provider) => {
+                unsplash_provider.fetch_avatar().await
+            }
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct AuthConfig {
+    phone: String,
+    password: Option<String>,
+    email: Option<String>,
+    api_id: i32,
+    api_hash: String,
+}
+
+#[derive(Deserialize)]
+struct AppConfig {
+    auth: AuthConfig,
+    #[serde(with = "humantime_serde")]
+    change_duration: Duration,
+    provider: AvatarProviderConfig,
+}
 
 fn ask_user(string: &str) -> String {
     println!("{string}");
@@ -30,21 +79,22 @@ async fn handle_authorization_state(
     client_id: i32,
     mut auth_rx: Receiver<AuthorizationState>,
     run_flag: Arc<AtomicBool>,
+    config: &AuthConfig,
 ) -> Receiver<AuthorizationState> {
     while let Some(state) = auth_rx.recv().await {
         match state {
             AuthorizationState::WaitTdlibParameters => {
                 let response = functions::set_tdlib_parameters(
                     false,
-                    "session_db".into(),
+                    format!("session_{}", config.phone),
                     String::new(),
                     String::new(),
                     false,
                     false,
                     false,
                     false,
-                    env!("API_ID").parse().unwrap(),
-                    env!("API_HASH").into(),
+                    config.api_id,
+                    config.api_hash.clone(),
                     "en".into(),
                     "Desktop".into(),
                     String::new(),
@@ -58,9 +108,12 @@ async fn handle_authorization_state(
                 }
             }
             AuthorizationState::WaitPhoneNumber => loop {
-                let input = ask_user("Enter your phone number (include the country calling code):");
-                let response =
-                    functions::set_authentication_phone_number(input, None, client_id).await;
+                let response = functions::set_authentication_phone_number(
+                    config.phone.clone(),
+                    None,
+                    client_id,
+                )
+                .await;
                 match response {
                     Ok(_) => break,
                     Err(e) => println!("{}", e.message),
@@ -73,7 +126,11 @@ async fn handle_authorization_state(
                 );
             }
             AuthorizationState::WaitEmailAddress(_x) => {
-                let email_address = ask_user("Please enter email address: ");
+                let email_address = config
+                    .email
+                    .clone()
+                    .unwrap_or(ask_user("Please enter email address: "));
+
                 let response =
                     functions::set_authentication_email_address(email_address, client_id).await;
                 match response {
@@ -112,7 +169,10 @@ async fn handle_authorization_state(
                     .unwrap();
             }
             AuthorizationState::WaitPassword(_x) => {
-                let password = ask_user("Please enter password: ");
+                let password = config
+                    .password
+                    .clone()
+                    .unwrap_or(ask_user("Please enter password: "));
                 functions::check_authentication_password(password, client_id)
                     .await
                     .unwrap();
@@ -131,9 +191,28 @@ async fn handle_authorization_state(
     auth_rx
 }
 
+fn load_config() -> Result<AppConfig, Box<dyn Error>> {
+    let config_file = env::args()
+        .nth(1)
+        .unwrap_or_else(|| "config.yaml".to_string());
+
+    let settings = Config::builder()
+        .add_source(File::with_name(&config_file))
+        .build()?
+        .try_deserialize()?;
+
+    Ok(settings)
+}
+
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
+
+    let AppConfig {
+        auth,
+        change_duration,
+        provider,
+    } = load_config().unwrap();
 
     let client_id = tdlib_rs::create_client();
     let (auth_tx, auth_rx) = mpsc::channel(5);
@@ -159,19 +238,15 @@ async fn main() {
         .await
         .unwrap();
 
-    let auth_rx = handle_authorization_state(client_id, auth_rx, run_flag.clone()).await;
+    let auth_rx = handle_authorization_state(client_id, auth_rx, run_flag.clone(), &auth).await;
 
-    AvatarChanger::new(
-        MockAvatarProvider::default(),
-        client_id,
-        Duration::from_secs(15),
-    )
-    .run_loop()
-    .await;
+    AvatarChanger::new(provider, client_id, change_duration)
+        .run_loop()
+        .await;
 
     functions::close(client_id).await.unwrap();
 
-    handle_authorization_state(client_id, auth_rx, run_flag.clone()).await;
+    handle_authorization_state(client_id, auth_rx, run_flag.clone(), &auth).await;
 
     handle.await.unwrap();
 }

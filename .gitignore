@@ -1,2 +1,4 @@
 /target
 /session_db
+/run
+/session_*
