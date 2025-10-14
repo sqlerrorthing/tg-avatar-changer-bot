@@ -67,7 +67,7 @@ async fn try_set_profile_photo(photo: InputFile, client_id: i32) -> Result<(), E
         match err.code {
             429 => {
                 let retry_after = parse_retry_time(&err.message).ok_or(err)? + 1;
-                warn!("Timeouted, retrying after {retry_after}s");
+                warn!("Ratelimited, retrying after {retry_after}s");
                 sleep(Duration::from_secs(retry_after)).await;
             }
             _ => return Err(err),
