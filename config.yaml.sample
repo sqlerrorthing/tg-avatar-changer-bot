@@ -1,0 +1,31 @@
+# Account data
+auth:
+  # Leave default, got from https://telegra.ph/telegraph-01-31-6
+  api_id: 2040
+
+  # Leave default, got from https://telegra.ph/telegraph-01-31-6
+  api_hash: b18441a1ff607e10a989891a5462e627
+
+  # Phone number for login
+  phone: "+123456789"
+
+  # Optional password
+  password: null
+
+  # Optional email
+  email: null
+
+# How often to change avatar (optional)
+change_duration: "1m30s"
+
+# Avatar provider configuration
+provider:
+  # Choose "solid" for a solid color avatar
+  type: solid
+  size: 512
+  color: "#FF8800" # optional, if isn't provided, random color will be used
+# Uncomment the following to use Unsplash provider instead:
+# provider:
+#   type: unsplash
+#   client_id: "your_unsplash_client_id"
+#   query: "nature" # optional

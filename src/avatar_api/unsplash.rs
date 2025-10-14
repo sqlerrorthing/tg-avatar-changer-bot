@@ -11,6 +11,26 @@ pub struct UnsplashProvider {
     client: Client,
 }
 
+impl<'de> Deserialize<'de> for UnsplashProvider {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Helper {
+            client_id: String,
+            query: Option<String>,
+        }
+
+        let helper = Helper::deserialize(deserializer)?;
+        Ok(UnsplashProvider::new(
+            helper.client_id,
+            helper.query,
+            Client::new(),
+        ))
+    }
+}
+
 #[derive(Deserialize, Debug)]
 struct UnsplashApiResponse {
     urls: Urls,
