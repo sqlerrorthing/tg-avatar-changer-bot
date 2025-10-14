@@ -2,12 +2,10 @@ use config::{Config, File};
 use parse_duration::parse;
 use serde::Deserialize;
 use std::{
-    error::Error,
-    sync::{
+    env, error::Error, sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
-    },
-    time::Duration,
+    }, time::Duration
 };
 use tdlib_rs::{
     enums::{self, AuthorizationState, Update},
@@ -199,8 +197,12 @@ async fn handle_authorization_state(
 }
 
 fn load_config() -> Result<AppConfig, Box<dyn Error>> {
+    let config_file = env::args()
+        .nth(1)
+        .unwrap_or_else(|| "config.yaml".to_string());
+
     let settings = Config::builder()
-        .add_source(File::with_name("config.yaml"))
+        .add_source(File::with_name(&config_file))
         .build()?
         .try_deserialize()?;
 
