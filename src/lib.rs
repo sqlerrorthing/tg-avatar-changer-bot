@@ -1,6 +1,7 @@
 use log::{error, info, warn};
 use regex::Regex;
 use std::time::Duration;
+use std::time::Instant;
 
 use derive_new::new;
 use tokio::time::sleep;
@@ -22,10 +23,23 @@ pub struct AvatarChanger<P> {
     change_duration: Duration,
 }
 
+macro_rules! measure {
+    ($func:expr) => {{
+        let start = Instant::now();
+        let result = $func;
+        let elapsed = start.elapsed();
+        (result, elapsed.as_secs_f64())
+    }};
+}
+
 impl<P: AvatarProvider> AvatarChanger<P> {
     pub async fn run_loop(&self) {
         loop {
-            let avatar = self.provider.fetch_avatar().await.unwrap();
+            info!("Fetching new awatar");
+
+            let (avatar, elapsed) = measure!(self.provider.fetch_avatar().await.unwrap());
+            info!("Fetched new awatar as {elapsed:.2} seconds");
+
             info!("Setting avatar: {}x{}", avatar.width(), avatar.height());
 
             let file = tempfile::NamedTempFile::new().unwrap();
@@ -37,10 +51,12 @@ impl<P: AvatarProvider> AvatarChanger<P> {
                 path: file.path().display().to_string(),
             };
 
-            if let Err(err) = try_set_profile_photo(InputFile::Local(local), self.client_id).await {
-                error!("Failed to set profile photo: {err:?}");
-            } else {
-                info!("Avatar has been set");
+            let (result, set_time) =
+                measure!(try_set_profile_photo(InputFile::Local(local), self.client_id).await);
+
+            match result {
+                Ok(_) => info!("Avatar has been set in {set_time:.2} seconds"),
+                Err(err) => error!("Failed to set profile photo: {err:?}"),
             }
 
             info!("Waiting {:.2} seconds", self.change_duration.as_secs_f32());
