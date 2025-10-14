@@ -13,6 +13,8 @@ tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros", "time", "
 derive-new = "0.7.0"
 tempfile = "3.23.0"
 regex = "1.12.2"
+thiserror = "2.0.17"
+reqwest = "0.12.24"
 
 [build-dependencies]
 tdlib-rs = { version = "1.1.0", features = [ "local-tdlib" ] }
