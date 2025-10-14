@@ -1,11 +1,11 @@
-use std::path::{Path, PathBuf};
-use std::sync::{Arc};
-use image::DynamicImage;
-use log::{info, log};
-use serde::Deserialize;
-use tokio::{fs, task};
-use tokio::sync::Mutex;
 use crate::avatar_provider::{AvatarProvider, FetchError};
+use image::DynamicImage;
+use log::info;
+use serde::Deserialize;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio::{fs, task};
 
 pub struct FolderProvider {
     images: Arc<Mutex<Vec<PathBuf>>>,
@@ -29,7 +29,7 @@ impl<'de> Deserialize<'de> for FolderProvider {
 impl FolderProvider {
     pub fn new(folder: impl AsRef<Path>) -> Result<Self, FetchError> {
         let mut images = Vec::new();
-        for entry in fs::read_dir(folder)? {
+        for entry in std::fs::read_dir(folder)? {
             let entry = entry?;
             let path = entry.path();
 
@@ -65,9 +65,7 @@ impl AvatarProvider for FolderProvider {
 
         let content = fs::read(&path).await?;
 
-        let image = task::spawn_blocking(move || {
-            image::load_from_memory(&content)
-        }).await??;
+        let image = task::spawn_blocking(move || image::load_from_memory(&content)).await??;
 
         Ok(image)
     }

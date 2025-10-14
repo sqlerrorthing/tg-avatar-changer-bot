@@ -14,12 +14,15 @@ use tdlib_rs::{
     functions,
 };
 
+use tg_avatar_changer_bot::avatar_provider::FetchError;
 use tg_avatar_changer_bot::{
     AvatarChanger,
-    avatar_provider::{AvatarProvider, solid_color::SolidColorProvider, unsplash::UnsplashProvider, folder::FolderProvider},
+    avatar_provider::{
+        AvatarProvider, folder::FolderProvider, solid_color::SolidColorProvider,
+        unsplash::UnsplashProvider,
+    },
 };
 use tokio::sync::mpsc::{self, Receiver, Sender};
-use tg_avatar_changer_bot::avatar_provider::FetchError;
 
 #[derive(Deserialize)]
 #[serde(tag = "type")]
@@ -31,13 +34,11 @@ enum AvatarProviderConfig {
     Unsplash(UnsplashProvider),
 
     #[serde(rename = "folder")]
-    Folder(FolderProvider)
+    Folder(FolderProvider),
 }
 
 impl AvatarProvider for AvatarProviderConfig {
-    async fn fetch_avatar<'a>(
-        &'a self,
-    ) -> Result<image::DynamicImage, FetchError> {
+    async fn fetch_avatar<'a>(&'a self) -> Result<image::DynamicImage, FetchError> {
         match self {
             AvatarProviderConfig::SolidColor(solid_color_provider) => {
                 solid_color_provider.fetch_avatar().await
@@ -45,9 +46,7 @@ impl AvatarProvider for AvatarProviderConfig {
             AvatarProviderConfig::Unsplash(unsplash_provider) => {
                 unsplash_provider.fetch_avatar().await
             }
-            AvatarProviderConfig::Folder(folder_provider) => {
-                folder_provider.fetch_avatar().await
-            }
+            AvatarProviderConfig::Folder(folder_provider) => folder_provider.fetch_avatar().await,
         }
     }
 
