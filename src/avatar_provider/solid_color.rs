@@ -3,7 +3,7 @@ use image::{DynamicImage, Rgba, RgbaImage};
 use rand::Rng;
 use serde::Deserialize;
 
-use crate::avatar_api::{AvatarProvider, FetchError};
+use crate::avatar_provider::{AvatarProvider, FetchError};
 
 #[derive(Debug, Clone, new, Deserialize)]
 pub struct SolidColorProvider {

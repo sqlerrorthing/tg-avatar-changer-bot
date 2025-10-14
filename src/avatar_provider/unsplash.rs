@@ -2,7 +2,7 @@ use derive_new::new;
 use reqwest::Client;
 use serde::Deserialize;
 
-use crate::avatar_api::AvatarProvider;
+use crate::avatar_provider::AvatarProvider;
 
 #[derive(Debug, new)]
 pub struct UnsplashProvider {

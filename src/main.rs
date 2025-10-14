@@ -16,9 +16,10 @@ use tdlib_rs::{
 
 use tg_avatar_changer_bot::{
     AvatarChanger,
-    avatar_api::{AvatarProvider, solid_color::SolidColorProvider, unsplash::UnsplashProvider},
+    avatar_provider::{AvatarProvider, solid_color::SolidColorProvider, unsplash::UnsplashProvider, folder::FolderProvider},
 };
 use tokio::sync::mpsc::{self, Receiver, Sender};
+use tg_avatar_changer_bot::avatar_provider::FetchError;
 
 #[derive(Deserialize)]
 #[serde(tag = "type")]
@@ -28,18 +29,38 @@ enum AvatarProviderConfig {
 
     #[serde(rename = "unsplash")]
     Unsplash(UnsplashProvider),
+
+    #[serde(rename = "folder")]
+    Folder(FolderProvider)
 }
 
 impl AvatarProvider for AvatarProviderConfig {
     async fn fetch_avatar<'a>(
         &'a self,
-    ) -> Result<image::DynamicImage, tg_avatar_changer_bot::avatar_api::FetchError> {
+    ) -> Result<image::DynamicImage, FetchError> {
         match self {
             AvatarProviderConfig::SolidColor(solid_color_provider) => {
                 solid_color_provider.fetch_avatar().await
             }
             AvatarProviderConfig::Unsplash(unsplash_provider) => {
                 unsplash_provider.fetch_avatar().await
+            }
+            AvatarProviderConfig::Folder(folder_provider) => {
+                folder_provider.fetch_avatar().await
+            }
+        }
+    }
+
+    async fn how_much_is_left(&self) -> Option<usize> {
+        match self {
+            AvatarProviderConfig::SolidColor(solid_color_provider) => {
+                solid_color_provider.how_much_is_left().await
+            }
+            AvatarProviderConfig::Unsplash(unsplash_provider) => {
+                unsplash_provider.how_much_is_left().await
+            }
+            AvatarProviderConfig::Folder(folder_provider) => {
+                folder_provider.how_much_is_left().await
             }
         }
     }

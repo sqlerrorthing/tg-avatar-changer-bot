@@ -1,5 +1,6 @@
 pub mod solid_color;
 pub mod unsplash;
+pub mod folder;
 
 use image::DynamicImage;
 use thiserror::Error;
@@ -12,14 +13,20 @@ pub enum FetchError {
     #[error("Image error: {0}")]
     ImageError(#[from] image::ImageError),
 
+    #[error("{0}")]
+    IOError(#[from] std::io::Error),
+
+    #[error("Task Join Error: {0}")]
+    Join(#[from] tokio::task::JoinError),
+    
     #[error("No more avatars is left")]
     NoMoreAvatars,
 }
 
 pub trait AvatarProvider {
-    fn fetch_avatar<'a>(&'a self) -> impl Future<Output = Result<DynamicImage, FetchError>> + Send;
+    fn fetch_avatar(&self) -> impl Future<Output = Result<DynamicImage, FetchError>> + Send;
 
-    fn how_much_is_left(&self) -> Option<usize> {
+    fn how_much_is_left(&self) -> impl Future<Output = Option<usize>> + Send {
         None
     }
 }

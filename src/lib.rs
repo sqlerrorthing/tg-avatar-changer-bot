@@ -13,10 +13,10 @@ use tdlib_rs::{
     types::{Error, InputChatPhotoStatic, InputFileLocal},
 };
 
-use crate::avatar_api::AvatarProvider;
-use crate::avatar_api::FetchError;
+use crate::avatar_provider::AvatarProvider;
+use crate::avatar_provider::FetchError;
 
-pub mod avatar_api;
+pub mod avatar_provider;
 
 const MAX_AVATAR_FETCH_ATTEMPTS: u8 = 5;
 
@@ -37,15 +37,15 @@ macro_rules! measure {
 }
 
 impl<P: AvatarProvider> AvatarChanger<P> {
-    async fn fetch_and_write_avatar_to_tempfile(&self) -> Result<NamedTempFile, FetchError> {
+    async fn fetch_and_write_avatar_to_tmpfile(&self) -> Result<NamedTempFile, FetchError> {
         let (avatar, elapsed) = {
             let mut attempt = 1;
             loop {
                 if attempt == 1 {
-                    info!("Fetching new awatar");
+                    info!("Fetching new avatar");
                 } else {
                     info!(
-                        "Fetching new awatar ({}/{MAX_AVATAR_FETCH_ATTEMPTS})",
+                        "Fetching new avatar ({}/{MAX_AVATAR_FETCH_ATTEMPTS})",
                         attempt
                     );
                 }
@@ -74,14 +74,14 @@ impl<P: AvatarProvider> AvatarChanger<P> {
             "Fetched new avatar in {elapsed:.2} seconds{}",
             self.provider
                 .how_much_is_left()
+                .await
                 .map(|left| format!(", {left} avatars left"))
                 .unwrap_or_default()
         );
 
         let file = unsafe { tempfile::NamedTempFile::new().unwrap_unchecked() };
         avatar
-            .write_to(&mut file.as_file(), image::ImageFormat::Jpeg)
-            .unwrap();
+            .write_to(&mut file.as_file(), image::ImageFormat::Jpeg)?;
 
         info!("Saved temporary as {}", file.path().display());
 
@@ -90,7 +90,7 @@ impl<P: AvatarProvider> AvatarChanger<P> {
 
     pub async fn run_loop(&self) {
         loop {
-            let avatar = match self.fetch_and_write_avatar_to_tempfile().await {
+            let avatar = match self.fetch_and_write_avatar_to_tmpfile().await {
                 Ok(avatar) => avatar,
                 Err(FetchError::NoMoreAvatars) => {
                     break;
@@ -139,7 +139,7 @@ async fn try_set_profile_photo(photo: InputFile, client_id: i32) -> Result<(), E
         match err.code {
             429 => {
                 let retry_after = parse_retry_time(&err.message).ok_or(err)? + 1;
-                warn!("Ratelimited, retrying after {retry_after}s");
+                warn!("Rate limited, retrying after {retry_after}s");
                 sleep(Duration::from_secs(retry_after)).await;
             }
             _ => return Err(err),

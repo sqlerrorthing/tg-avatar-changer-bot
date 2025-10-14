@@ -29,3 +29,7 @@ provider:
 #   type: unsplash
 #   client_id: "your_unsplash_client_id"
 #   query: "nature" # optional
+# Uncomment the following to use FOlder provider instead:
+# provider:
+#   type: folder
+#   path: "some/path/to/folder/with/images"
