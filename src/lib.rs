@@ -54,6 +54,10 @@ impl<P: AvatarProvider> AvatarChanger<P> {
 
                 match res {
                     Ok(avatar) => break (avatar, elapsed),
+                    Err(FetchError::NoMoreAvatars) => {
+                        info!("No more avatars");
+                        return Err(FetchError::NoMoreAvatars);
+                    }
                     Err(err) => {
                         error!("Error fetching new avatar: {err:?}");
 
@@ -66,7 +70,13 @@ impl<P: AvatarProvider> AvatarChanger<P> {
             }
         };
 
-        info!("Fetched new awatar as {elapsed:.2} seconds");
+        info!(
+            "Fetched new avatar in {elapsed:.2} seconds{}",
+            self.provider
+                .how_much_is_left()
+                .map(|left| format!(", {left} avatars left"))
+                .unwrap_or_default()
+        );
 
         let file = unsafe { tempfile::NamedTempFile::new().unwrap_unchecked() };
         avatar
@@ -80,7 +90,16 @@ impl<P: AvatarProvider> AvatarChanger<P> {
 
     pub async fn run_loop(&self) {
         loop {
-            let avatar = self.fetch_and_write_avatar_to_tempfile().await.unwrap();
+            let avatar = match self.fetch_and_write_avatar_to_tempfile().await {
+                Ok(avatar) => avatar,
+                Err(FetchError::NoMoreAvatars) => {
+                    break;
+                }
+                Err(err) => {
+                    error!("Unexpected error: {err:#?}");
+                    continue;
+                }
+            };
 
             let local = InputFileLocal {
                 path: avatar.path().display().to_string(),
