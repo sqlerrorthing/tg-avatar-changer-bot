@@ -1,21 +1,21 @@
-use std::sync::Arc;
-use std::time::Duration;
+use crate::avatar_api::{AvatarProvider, FetchError};
 use dreamcore_image_processor::crop_and_resize;
 use dreamcore_image_processor::provider::BackgroundProvider;
 use dreamcore_image_processor::provider::pinterest::PinterestProvider;
 use dreamcore_image_processor::transformation::distortion::Distortion;
 use dreamcore_image_processor::transformation::eyes::{Eyeball, Eyeballs};
-use dreamcore_image_processor::transformation::{ImageTransformation, Pipeline};
 use dreamcore_image_processor::transformation::text::DreamcoreStyledTextTransform;
+use dreamcore_image_processor::transformation::{ImageTransformation, Pipeline};
 use image::{DynamicImage, GenericImageView};
 use log::{error, info};
+use std::sync::Arc;
+use std::time::Duration;
 use tokio::task::spawn_blocking;
 use tokio::time::sleep;
-use crate::avatar_api::{AvatarProvider, FetchError};
 
 pub struct DreamcoreProvider {
     pinterest: PinterestProvider,
-    pipeline: Pipeline
+    pipeline: Arc<Pipeline>,
 }
 
 impl Default for DreamcoreProvider {
@@ -28,7 +28,7 @@ impl Default for DreamcoreProvider {
 
         Self {
             pinterest: PinterestProvider::new("dreamcore landscape"),
-            pipeline
+            pipeline: Arc::new(pipeline),
         }
     }
 }
@@ -54,13 +54,15 @@ impl AvatarProvider for DreamcoreProvider {
 
         info!("Transforming image");
 
-        Ok(
-            spawn_blocking(move || {
-                self.pipeline.transform(&mut img);
-                img
-            })
-            .await
-            .unwrap()
-        )
+        let pipeline = self.pipeline.clone();
+
+        let img = spawn_blocking(move || {
+            pipeline.transform(&mut img);
+            img
+        })
+        .await
+        .unwrap();
+
+        Ok(img)
     }
 }

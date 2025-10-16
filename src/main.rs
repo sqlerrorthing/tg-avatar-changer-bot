@@ -14,12 +14,12 @@ use tdlib_rs::{
     functions,
 };
 
+use tg_avatar_changer_bot::avatar_api::dreamcore::DreamcoreProvider;
 use tg_avatar_changer_bot::{
     AvatarChanger,
     avatar_api::{AvatarProvider, solid_color::SolidColorProvider, unsplash::UnsplashProvider},
 };
 use tokio::sync::mpsc::{self, Receiver, Sender};
-use tg_avatar_changer_bot::avatar_api::dreamcore::DreamcoreProvider;
 
 #[derive(Deserialize)]
 #[serde(tag = "type")]
@@ -31,7 +31,7 @@ enum AvatarProviderConfig {
     Unsplash(UnsplashProvider),
 
     #[serde(rename = "dreamcore")]
-    Dreamcore(#[serde(default)] DreamcoreProvider)
+    Dreamcore(#[serde(default)] DreamcoreProvider),
 }
 
 impl AvatarProvider for AvatarProviderConfig {
@@ -45,9 +45,7 @@ impl AvatarProvider for AvatarProviderConfig {
             AvatarProviderConfig::Unsplash(unsplash_provider) => {
                 unsplash_provider.fetch_avatar().await
             }
-            AvatarProviderConfig::Dreamcore(dreamcore) => {
-                dreamcore.fetch_avatar().await
-            }
+            AvatarProviderConfig::Dreamcore(dreamcore) => dreamcore.fetch_avatar().await,
         }
     }
 }

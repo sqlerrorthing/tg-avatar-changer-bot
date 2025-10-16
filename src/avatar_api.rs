@@ -1,6 +1,6 @@
+pub mod dreamcore;
 pub mod solid_color;
 pub mod unsplash;
-pub mod dreamcore;
 
 use image::DynamicImage;
 use thiserror::Error;
@@ -18,7 +18,7 @@ pub enum FetchError {
 }
 
 pub trait AvatarProvider {
-    fn fetch_avatar(&self) -> impl Future<Output=Result<DynamicImage, FetchError>> + Send;
+    fn fetch_avatar(&self) -> impl Future<Output = Result<DynamicImage, FetchError>> + Send;
 
     fn how_much_is_left(&self) -> Option<usize> {
         None
