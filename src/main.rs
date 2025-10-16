@@ -31,7 +31,7 @@ enum AvatarProviderConfig {
     Unsplash(UnsplashProvider),
 
     #[serde(rename = "dreamcore")]
-    Dreamcore(#[serde(default)] DreamcoreProvider),
+    Dreamcore(#[serde(skip_deserializing, default)] DreamcoreProvider),
 }
 
 impl AvatarProvider for AvatarProviderConfig {
